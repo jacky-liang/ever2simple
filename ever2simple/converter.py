@@ -136,9 +136,33 @@ class EverConverter(object):
                     output_file_path_no_ext = output_file_path_no_ext_original + " (" + str(count) + ")"
                 output_file_path = output_file_path_no_ext + ".md"
                 with open(output_file_path, 'w') as output_file:
+                    output_file.write(metadata(note).encode(encoding='utf-8'))
                     output_file.write(note['content'].encode(encoding='utf-8'))
 
     def _format_filename(self, s):
         for c in r'[]/\;,><&*:%=+@!#^()|?^':
             s = s.replace(c, '-')
         return s
+
+
+def metadata(note):
+    """
+    get metadata of note. Ideally we would print all metadata as MultiMarkdown
+    on top of file, but that renders badly with other markdown variants. So for
+    now we just return creation date on top, since this might be the most
+    important metadata.
+    # TODO: could be a commandline option
+    """
+    # Tags is a selectable option when exporting from Evernote, so we can not
+    # be sure, if it is available
+    kw = note.get('tags', [])
+    kws = u", ".join(kw)
+        
+    data = {"Title": note['title'],
+            "Date": note['createdate'],
+            "Keywords": kws}
+    
+    # for now only return creation date
+    return u"{}\n\n".format(data['Date'])
+
+
