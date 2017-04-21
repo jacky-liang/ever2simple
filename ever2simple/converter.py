@@ -12,10 +12,10 @@ class EverConverter(object):
     """Evernote conversion runner
     """
 
-    fieldnames = ['createdate', 'modifydate', 'content', 'tags']
+    fieldnames = ['createdate', 'modifydate', 'content', 'tags', 'title']
     date_fmt = '%h %d %Y %H:%M:%S'
 
-    def __init__(self, enex_filename, simple_filename=None, fmt='json'):
+    def __init__(self, enex_filename, simple_filename, fmt, metadata):
         self.enex_filename = os.path.expanduser(enex_filename)
         self.stdout = False
         if simple_filename is None:
@@ -24,6 +24,7 @@ class EverConverter(object):
         else:
             self.simple_filename = os.path.expanduser(simple_filename)
         self.fmt = fmt
+        self.metadata = metadata
 
     def _load_xml(self, enex_file):
         try:
@@ -121,22 +122,21 @@ class EverConverter(object):
                 sys.exit(1)
             elif not os.path.exists(self.simple_filename):
                 os.makedirs(self.simple_filename)
-            for i, note in enumerate(notes):
-                # Original name with number
-                #output_file_path = os.path.join(self.simple_filename, str(i) + '.txt')
+            for note in notes:
                 # Overwrite duplicates
-                #output_file_path = os.path.join(self.simple_filename, note['title'] + '.md')
+                # output_file_path = os.path.join(self.simple_filename, note['title'] + '.md')
                 # Check for duplicates
-                filename = self._format_filename(note['title']);
-                output_file_path_no_ext_original = os.path.join(self.simple_filename, filename);
+                filename = self._format_filename(note['title'])
+                output_file_path_no_ext_original = os.path.join(self.simple_filename, filename)
                 output_file_path_no_ext = output_file_path_no_ext_original
-                count = 0;
+                count = 0
                 while os.path.isfile(output_file_path_no_ext + ".md"):
-                    count = count + 1;
+                    count = count + 1
                     output_file_path_no_ext = output_file_path_no_ext_original + " (" + str(count) + ")"
                 output_file_path = output_file_path_no_ext + ".md"
                 with open(output_file_path, 'w') as output_file:
-                    output_file.write(metadata(note).encode(encoding='utf-8'))
+                    if self.metadata:
+                        output_file.write(self._metadata(note).encode(encoding='utf-8'))
                     output_file.write(note['content'].encode(encoding='utf-8'))
 
     def _format_filename(self, s):
@@ -144,25 +144,24 @@ class EverConverter(object):
             s = s.replace(c, '-')
         return s
 
-
-def metadata(note):
-    """
-    get metadata of note. Ideally we would print all metadata as MultiMarkdown
-    on top of file, but that renders badly with other markdown variants. So for
-    now we just return creation date on top, since this might be the most
-    important metadata.
-    # TODO: could be a commandline option
-    """
-    # Tags is a selectable option when exporting from Evernote, so we can not
-    # be sure, if it is available
-    kw = note.get('tags', [])
-    kws = u", ".join(kw)
+    def _metadata(self, note):
+        """
+        optionally print metadata of note. Default is 'all', but can be limited
+        to any combination of 'title', 'date', 'keywords'. Output is in
+        MultiMarkdown format, but also rendered nicely in standard Markdown.
+        """
+        # Tags is a selectable option when exporting from Evernote, so we can not
+        # be sure that it is available
+        keywords = u", ".join(note.get('tags', []))
         
-    data = {"Title": note['title'],
-            "Date": note['createdate'],
-            "Keywords": kws}
-    
-    # for now only return creation date
-    return u"{}\n\n".format(data['Date'])
+        # XXX two spaces at the end of a metadata line are intentionally set,
+        # so that regular markdown renderers append a linebreak
+        md = {'title': u"Title: {}  \n".format(note['title']),
+              'date': u"Date: {}  \n".format(note['createdate']),
+              'keywords': u"Keywords: {}  \n".format(keywords)}
+        if 'all' in self.metadata:
+            return u"{title}{date}{keywords}\n".format(**md)
+        md_lines = map(lambda l: md[l], self.metadata)
+        return u"".join(md_lines) + u"\n"
 
 
