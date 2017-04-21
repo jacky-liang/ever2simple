@@ -10,7 +10,7 @@ notes, and that is it.
 This package installs a script to help you migrate from Evernote into
 Simplenote by exporting the notes as files. The script
 will take an Evernote ``enex`` export and turn it into a ``json``, ``csv`` or
-directory of ``*.txt`` files.
+directory of ``*.md`` files.
 
 The html that is provided by Evernote is processed by the html2text_
 library. This transforms the html into Markdown_. The Simplenote web UI
@@ -58,7 +58,7 @@ to a directory and using ``dir`` as the parameter to ``--format``::
 
     $ ever2simple my_evernote.enex --output simplenote_dir --format dir
 
-That will output each note in a ``*.txt`` file named by a number to the
+That will output each note in a ``*.md`` file named by the note's title to the
 ``simplenote_dir`` directory (creating it if it doesn't exist).
 
 You can now request Simplenote's support to enable Dropbox synchronization
@@ -87,31 +87,38 @@ Command Line Help
 
 The help given by running ``ever2simple -h``::
 
-
-    usage: ever2simple [-h] [-o OUTPUT] [-f {json,csv,dir}] enex-file
+    usage: ever2simple [-h] [-o OUTPUT] [-f {json,csv,dir}]
+                    [-m {all,title,date,keywords}]
+                    enex_file
 
     Convert Evernote.enex files to Markdown
 
     positional arguments:
-      enex-file             the path to the Evernote.enex file
+    enex_file             the path to the Evernote.enex file
 
     optional arguments:
-      -h, --help            show this help message and exit
-      -o OUTPUT, --output OUTPUT
-                            the path to the output file or directory, leave black
-                            to output to the terminal (stdout) (default: None)
-      -f {json,csv,dir}, --format {json,csv,dir}
+    -h, --help            show this help message and exit
+    -o OUTPUT, --output OUTPUT
+                            the path to the output file or directory, omit to
+                            output to the terminal (stdout) (default: None)
+    -f {json,csv,dir}, --format {json,csv,dir}
                             the output format, json, csv or a directory (default:
                             json)
-
+    -m {all,title,date,keywords}, --metadata {all,title,date,keywords}
+                            For directory output only. Specify the metadata you
+                            would like to add on top of the markdown file. Valid
+                            options are 'all', 'title', 'created', and 'keywords'.
+                            Default is 'all'. You can specify this argument
+                            multiple times, by which you can also control the
+                            order in which metadata lines are printed. Metadata is
+                            printed in MultiMarkdown format. (default: None)
+        
 
 Notes and Caveats
 -----------------
 
 - Simplenote no longer supports JSON and CSV imports, only text files via
   Dropbox.
-
-- Exporting to a directory will not preserve tags in the notes.
 
 - This does not handle any attachments since simplenote doesn't support
   them. This script does not ignore the note that has attachments. This
