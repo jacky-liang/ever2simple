@@ -27,7 +27,7 @@ def main():
     args = parser.parse_args()
     filepath = os.path.expanduser(args.enex_file)
     if not os.path.exists(filepath):
-        print 'File does not exist: {}'.format(filepath)
+        print('File does not exist: {}'.format(filepath))
         sys.exit(1)
     converter = EverConverter(filepath, args.output, args.format, args.metadata)
     converter.convert()
