@@ -76,7 +76,7 @@ class EverConverter(object):
             print "File does not exist: %s" % self.enex_filename
             sys.exit(1)
         # TODO: use with here, but pyflakes barfs on it
-        enex_file = open(self.enex_filename)
+        enex_file = open(self.enex_filename, encoding='utf8')
         xml_tree = self._load_xml(enex_file)
         enex_file.close()
         notes = self.prepare_notes(xml_tree)
@@ -97,7 +97,7 @@ class EverConverter(object):
         if self.stdout:
             simple_file = StringIO()
         else:
-            simple_file = open(self.simple_filename, 'w')
+            simple_file = open(self.simple_filename, 'w', encoding='utf8')
         writer = DictWriter(simple_file, self.fieldnames)
         writer.writerows(notes)
         if self.stdout:
@@ -110,7 +110,7 @@ class EverConverter(object):
         if self.simple_filename is None:
             sys.stdout.write(json.dumps(notes))
         else:
-            with open(self.simple_filename, 'w') as output_file:
+            with open(self.simple_filename, 'w', encoding='utf8') as output_file:
                 json.dump(notes, output_file)
 
     def _convert_dir(self, notes):
@@ -126,7 +126,8 @@ class EverConverter(object):
                 # Overwrite duplicates
                 # output_file_path = os.path.join(self.simple_filename, note['title'] + '.md')
                 # Check for duplicates
-                filename = self._format_filename(note['title'])
+                # Filename is truncated to 100 characters (Windows MAX_PATH is 255) - not a perfect fix but an improvement
+                filename = self._format_filename(note['title'][0:99])
                 output_file_path_no_ext_original = os.path.join(self.simple_filename, filename)
                 output_file_path_no_ext = output_file_path_no_ext_original
                 count = 0
@@ -134,10 +135,10 @@ class EverConverter(object):
                     count = count + 1
                     output_file_path_no_ext = output_file_path_no_ext_original + " (" + str(count) + ")"
                 output_file_path = output_file_path_no_ext + ".md"
-                with open(output_file_path, 'w') as output_file:
+                with open(output_file_path, 'w', encoding='utf8') as output_file:
                     if self.metadata:
-                        output_file.write(self._metadata(note).encode(encoding='utf-8'))
-                    output_file.write(note['content'].encode(encoding='utf-8'))
+                        output_file.write(self._metadata(note))
+                    output_file.write(note['content'])
 
     def _format_filename(self, s):
         for c in r'[]/\;,><&*:%=+@!#^()|?^':
