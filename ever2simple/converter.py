@@ -7,12 +7,14 @@ from dateutil.parser import parse
 from html2text import HTML2Text
 from lxml import etree
 import io
+import re
+import base64
 
 class EverConverter(object):
     """Evernote conversion runner
     """
 
-    fieldnames = ['createdate', 'modifydate', 'content', 'tags', 'title']
+    fieldnames = ['createdate', 'modifydate', 'content', 'tags', 'title', 'data']
     date_fmt = '%h %d %Y %H:%M:%S'
 
     def __init__(self, enex_filename, simple_filename, fmt, metadata):
@@ -58,9 +60,20 @@ class EverConverter(object):
                 tags = " ".join(tags)
             note_dict['tags'] = tags
             note_dict['content'] = ''
+            note_dict['ims'] = {}
             content = note.xpath('content')
             if content:
+                # if 'base64' in text:
                 raw_text = content[0].text
+
+                # process images
+                resources = note.xpath('resource')
+                im_strs = re.findall('<en-media.+?type="image/png".>', raw_text)
+                for i, im_str in enumerate(im_strs):
+                    im_hash = re.findall('hash="(.+?)"', im_str)[0]
+                    raw_text = raw_text.replace(im_str, '![{0}](ims/{0}.png)'.format(im_hash))
+                    note_dict['ims'][im_hash] = resources[i][0].text.strip()
+
                 # TODO: Option to go to just plain text, no markdown
                 converted_text = self._convert_html_markdown(title, raw_text)
                 if self.fmt == 'csv':
@@ -68,6 +81,7 @@ class EverConverter(object):
                     #      ignoring the problem for now.
                     converted_text = converted_text.encode('ascii', 'ignore')
                 note_dict['content'] = converted_text
+                
             notes.append(note_dict)
         return notes
 
@@ -139,6 +153,15 @@ class EverConverter(object):
                     if self.metadata:
                         output_file.write(self._metadata(note))
                     output_file.write(note['content'])
+
+                # save images
+                ims_path = os.path.join(self.simple_filename, 'ims')
+                if not os.path.exists(ims_path):
+                    os.makedirs(ims_path)
+                for key, val in note['ims'].items():
+                    im_data = base64.b64decode(val)
+                    with open(os.path.join(ims_path, '{}.png'.format(key)), 'wb') as f:
+                        f.write(im_data)
 
     def _format_filename(self, s):
         for c in r'[]/\;,><&*:%=+@!#^()|?^':
