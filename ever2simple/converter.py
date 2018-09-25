@@ -6,7 +6,7 @@ from io import StringIO
 from dateutil.parser import parse
 from html2text import HTML2Text
 from lxml import etree
-
+import io
 
 class EverConverter(object):
     """Evernote conversion runner
@@ -76,7 +76,7 @@ class EverConverter(object):
             print("File does not exist: %s" % self.enex_filename)
             sys.exit(1)
         # TODO: use with here, but pyflakes barfs on it
-        enex_file = open(self.enex_filename, encoding='utf8')
+        enex_file = io.open(self.enex_filename, encoding='utf8')
         xml_tree = self._load_xml(enex_file)
         enex_file.close()
         notes = self.prepare_notes(xml_tree)
@@ -135,7 +135,7 @@ class EverConverter(object):
                     count = count + 1
                     output_file_path_no_ext = output_file_path_no_ext_original + " (" + str(count) + ")"
                 output_file_path = output_file_path_no_ext + ".md"
-                with open(output_file_path, 'w', encoding='utf8') as output_file:
+                with io.open(output_file_path, mode='w', encoding='utf8') as output_file:
                     if self.metadata:
                         output_file.write(self._metadata(note))
                     output_file.write(note['content'])
